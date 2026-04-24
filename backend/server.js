@@ -14,9 +14,11 @@ app.set('trust proxy', 1);
 // ── Security middleware ──────────────────────────────────────
 app.use(helmet());
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? process.env.YOUR_SITE_URL
-    : ['http://localhost:3000', 'http://127.0.0.1:3000'],
+  origin: [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://ll-mjudge-63hy.vercel.app"
+  ],
   credentials: true,
 }));
 
