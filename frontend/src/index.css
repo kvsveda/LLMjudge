@@ -1,0 +1,138 @@
+/* ============================================================
+   index.css — Global styles + Tailwind directives
+   ============================================================ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base layer overrides ─────────────────────────────────── */
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply font-sans antialiased bg-gray-50 text-gray-900
+           dark:bg-gray-950 dark:text-gray-100
+           transition-colors duration-300;
+  }
+
+  * {
+    @apply box-border;
+  }
+
+  /* Custom scrollbar — light */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-gray-100 dark:bg-gray-800; }
+  ::-webkit-scrollbar-thumb { @apply bg-gray-300 dark:bg-gray-600 rounded-full; }
+  ::-webkit-scrollbar-thumb:hover { @apply bg-gray-400 dark:bg-gray-500; }
+}
+
+/* ── Component layer ─────────────────────────────────────── */
+@layer components {
+
+  /* Cards */
+  .card {
+    @apply bg-white dark:bg-gray-900
+           border border-gray-200 dark:border-gray-700
+           rounded-2xl shadow-sm;
+  }
+
+  /* Input / Textarea */
+  .input {
+    @apply w-full px-4 py-3 rounded-xl
+           bg-gray-50 dark:bg-gray-800
+           border border-gray-200 dark:border-gray-700
+           text-gray-900 dark:text-gray-100
+           placeholder-gray-400 dark:placeholder-gray-500
+           focus:outline-none focus:ring-2 focus:ring-brand-500
+           transition duration-200;
+  }
+
+  /* Primary button */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 rounded-xl font-semibold text-white
+           bg-brand-600 hover:bg-brand-700 active:bg-brand-800
+           disabled:opacity-50 disabled:cursor-not-allowed
+           transition duration-200 shadow-sm;
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           px-5 py-2.5 rounded-xl font-medium
+           bg-gray-100 dark:bg-gray-800
+           text-gray-700 dark:text-gray-300
+           hover:bg-gray-200 dark:hover:bg-gray-700
+           transition duration-200;
+  }
+
+  /* Score badge */
+  .score-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full
+           text-xs font-semibold;
+  }
+
+  /* Code block wrapper */
+  .code-wrapper {
+    @apply rounded-xl overflow-hidden text-sm font-mono;
+  }
+
+  /* Label */
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5;
+  }
+
+  /* Section heading */
+  .section-heading {
+    @apply text-xl font-bold text-gray-900 dark:text-white;
+  }
+
+  /* Model card header strip */
+  .model-strip-gpt    { @apply bg-gradient-to-r from-emerald-500 to-teal-500; }
+  .model-strip-gemini { @apply bg-gradient-to-r from-blue-500 to-indigo-500; }
+  .model-strip-claude { @apply bg-gradient-to-r from-orange-500 to-red-500; }
+
+  /* Metric row in judge table */
+  .metric-bar {
+    @apply h-2 rounded-full bg-brand-500 transition-all duration-700;
+  }
+}
+
+/* ── Utility extras ──────────────────────────────────────── */
+@layer utilities {
+  .text-gradient {
+    @apply bg-gradient-to-r from-brand-600 to-indigo-600
+           dark:from-brand-400 dark:to-indigo-400
+           bg-clip-text text-transparent;
+  }
+
+  .glass {
+    @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-md;
+  }
+}
+
+/* ── Loading spinner ─────────────────────────────────────── */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Prose-style response text ───────────────────────────── */
+.response-prose {
+  font-size: 0.875rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
