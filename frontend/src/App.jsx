@@ -13,6 +13,8 @@ import SignupPage    from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
 import HistoryPage   from './pages/HistoryPage';
 
+const authBypassEnabled = process.env.REACT_APP_BYPASS_AUTH === 'true';
+
 // Protected route wrapper
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -24,6 +26,7 @@ function PrivateRoute({ children }) {
 function PublicRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <FullPageLoader />;
+  if (authBypassEnabled) return <Navigate to="/analyze" replace />;
   return !user ? children : <Navigate to="/analyze" replace />;
 }
 

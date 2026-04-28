@@ -3,6 +3,7 @@
 // ============================================================
 import axios from 'axios';
 
+const authBypassEnabled = process.env.REACT_APP_BYPASS_AUTH === 'true';
 const apiBaseUrl = process.env.REACT_APP_API_URL
   ? `${process.env.REACT_APP_API_URL}/api`
   : '/api';
@@ -24,7 +25,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (!authBypassEnabled && error.response?.status === 401) {
       localStorage.removeItem('llmj_token');
       window.location.href = '/login';
     }
