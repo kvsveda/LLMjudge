@@ -1,4 +1,4 @@
-require('dotenv').config();
+const { getOpenRouterApiKey } = require('./config/loadEnv');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -70,6 +70,9 @@ connectDb()
     app.listen(PORT, () => {
       console.log(`\n🚀 LLM Judge Backend running on http://localhost:${PORT}`);
       console.log(`📋 Environment: ${process.env.NODE_ENV || 'development'}\n`);
+      if (!getOpenRouterApiKey()) {
+        console.warn('⚠️  OpenRouter API key missing. Set OPENROUTER_API_KEY or MY_OPENROUTER_API_KEY in backend/.env');
+      }
     });
   })
   .catch((err) => {

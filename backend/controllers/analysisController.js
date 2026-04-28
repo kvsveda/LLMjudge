@@ -4,23 +4,42 @@
 // ============================================================
 const axios = require('axios');
 const { connectDb, History } = require('../config/database');
+const { getOpenRouterApiKey } = require('../config/loadEnv');
 
-// ── Gemini client ─────────────────────────────────────────────
-const geminiClient = axios.create({
-  baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-  timeout: 60000,
-});
+const MODEL_MAX_TOKENS = Number.parseInt(process.env.OPENROUTER_MODEL_MAX_TOKENS || '512', 10);
+const JUDGE_MAX_TOKENS = Number.parseInt(process.env.OPENROUTER_JUDGE_MAX_TOKENS || '700', 10);
 
-// ── OpenRouter client shared for non-Google models ─────────────
+// ── OpenRouter client shared for all routed models ─────────────
 const openRouterClient = axios.create({
   baseURL: 'https://openrouter.ai/api/v1',
-  headers: {
-    'Content-Type': 'application/json',
-    'HTTP-Referer': process.env.YOUR_SITE_URL || 'http://localhost:3000',
-    'X-Title': process.env.YOUR_SITE_NAME || 'LLMJudge',
-  },
   timeout: 60000,
 });
+
+openRouterClient.interceptors.request.use((config) => {
+  const openRouterApiKey = getOpenRouterApiKey();
+  if (!openRouterApiKey) {
+    throw new Error('Missing OpenRouter API key. Set OPENROUTER_API_KEY or MY_OPENROUTER_API_KEY in backend/.env.');
+  }
+
+  config.headers = config.headers || {};
+  config.headers['Content-Type'] = 'application/json';
+  config.headers['Authorization'] = `Bearer ${openRouterApiKey}`;
+  config.headers['HTTP-Referer'] = process.env.YOUR_SITE_URL || 'http://localhost:3000';
+  config.headers['X-Title'] = process.env.YOUR_SITE_NAME || 'LLMJudge';
+  return config;
+});
+
+function normalizeGoogleModel(modelEnvName) {
+  const latestAliases = {
+    'google/gemini-pro-latest': '~google/gemini-pro-latest',
+    'google/gemini-flash-latest': '~google/gemini-flash-latest',
+  };
+
+  if (latestAliases[modelEnvName]) return latestAliases[modelEnvName];
+  if (modelEnvName.startsWith('~google/')) return modelEnvName;
+  if (modelEnvName.startsWith('google/')) return modelEnvName;
+  return `google/${modelEnvName}`;
+}
 
 async function callOpenAI(modelEnvName, prompt, systemPrompt, retryCount = 0) {
   const start = Date.now();
@@ -33,10 +52,8 @@ async function callOpenAI(modelEnvName, prompt, systemPrompt, retryCount = 0) {
     const response = await openRouterClient.post('/chat/completions', {
       model,
       messages,
-      max_tokens: 2000,
+      max_tokens: MODEL_MAX_TOKENS,
       temperature: 0.7,
-    }, {
-      headers: { 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}` }
     });
     const latency = Date.now() - start;
     const content = response.data?.choices?.[0]?.message?.content || '';
@@ -62,10 +79,8 @@ async function callAnthropic(modelEnvName, prompt, systemPrompt, retryCount = 0)
     const response = await openRouterClient.post('/chat/completions', {
       model,
       messages,
-      max_tokens: 2000,
+      max_tokens: MODEL_MAX_TOKENS,
       temperature: 0.7,
-    }, {
-      headers: { 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}` }
     });
     const latency = Date.now() - start;
     const content = response.data?.choices?.[0]?.message?.content || '';
@@ -91,10 +106,8 @@ async function callXAI(modelEnvName, prompt, systemPrompt, retryCount = 0) {
     const response = await openRouterClient.post('/chat/completions', {
       model,
       messages,
-      max_tokens: 2000,
+      max_tokens: JUDGE_MAX_TOKENS,
       temperature: 0.7,
-    }, {
-      headers: { 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}` }
     });
     const latency = Date.now() - start;
     const content = response.data?.choices?.[0]?.message?.content || '';
@@ -109,14 +122,10 @@ async function callXAI(modelEnvName, prompt, systemPrompt, retryCount = 0) {
   }
 }
 
-// ── Call Gemini via OpenRouter ───────────────────────────────────
+// ── Call Gemini via OpenRouter ─────────────────────────────────────
 async function callGoogleAPI(modelEnvName, prompt, systemPrompt, retryCount = 0) {
   const start = Date.now();
-  let googleModel = 'google/gemini-3.1-flash-lite-preview'; // fallback
-  if (modelEnvName.includes('gpt')) googleModel = 'google/gemini-2.5-pro';
-  if (modelEnvName.includes('claude')) googleModel = 'google/gemini-2.0-flash';
-  if (modelEnvName.includes('grok')) googleModel = 'google/gemini-2.5-flash';
-  if (modelEnvName.includes('gemini')) googleModel = 'google/gemini-3.1-flash-lite-preview';
+  const model = normalizeGoogleModel(modelEnvName);
 
   try {
     const messages = [];
@@ -124,25 +133,23 @@ async function callGoogleAPI(modelEnvName, prompt, systemPrompt, retryCount = 0)
     messages.push({ role: 'user', content: prompt });
 
     const response = await openRouterClient.post('/chat/completions', {
-      model: googleModel,
+      model,
       messages,
-      max_tokens: 2000,
+      max_tokens: MODEL_MAX_TOKENS,
       temperature: 0.7,
-      reasoning: { effort: "minimal" },
-    }, {
-      headers: { 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}` }
     });
+
     const latency = Date.now() - start;
     const content = response.data?.choices?.[0]?.message?.content || '';
     return { success: true, content, latency };
   } catch (err) {
     if (err.response?.status === 429 && retryCount < 3) {
-      console.warn(`[429] Rate limit hit for ${googleModel}. Retrying in ${2000 * (retryCount + 1)}ms...`);
+      console.warn(`[429] Rate limit hit for ${model}. Retrying in ${2000 * (retryCount + 1)}ms...`);
       await new Promise(r => setTimeout(r, 2000 * (retryCount + 1)));
       return callGoogleAPI(modelEnvName, prompt, systemPrompt, retryCount + 1);
     }
     const latency = Date.now() - start;
-    return { success: false, content: '', error: 'API Error: ' + err.message, latency };
+    return { success: false, content: '', error: 'OpenRouter (Gemini) Error: ' + err.message, latency };
   }
 }
 
@@ -318,7 +325,7 @@ exports.runAnalysis = async (req, res) => {
 
   const judgePrompt = buildJudgePrompt(prompt, modelResults, mapping);
   const judgeResult = await callXAI(
-    process.env.LLAMA_MODEL,
+    process.env.GROK_MODEL,
     judgePrompt,
     'You are a strict evaluator. Read carefully and output a JSON.'
   );
@@ -385,7 +392,7 @@ exports.runAnalysis = async (req, res) => {
     },
     judge: {
       name: 'AI Judge',
-      modelId: process.env.LLAMA_MODEL,
+      modelId: process.env.GROK_MODEL,
       latency: judgeResult.latency,
       ...judgeData,
     },

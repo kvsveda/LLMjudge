@@ -63,9 +63,7 @@ llm-judge/
 | Key | Where to get it | Cost |
 |-----|----------------|------|
 | `OPENROUTER_API_KEY` | [openrouter.ai](https://openrouter.ai) — create account, go to Keys | Free credits on signup |
-| `GEMINI_API_KEY` | [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey) | Free tier |
-
-> **OpenRouter** provides unified access to GPT-3.5-turbo, Claude Haiku, and Llama 3 (free tier) — one key for three models.
+> **OpenRouter** provides unified access to GPT, Gemini, Claude, and the judge model — one key for the full comparison flow.
 
 ---
 
@@ -80,7 +78,6 @@ Open `backend/.env` and fill in:
 
 ```env
 OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxx
-GEMINI_API_KEY=AIzaSyxxxxxxxxxxxxxxxxxxxxxxxx
 JWT_SECRET=any_long_random_string_you_choose
 ```
 
@@ -125,7 +122,7 @@ Visit **http://localhost:3000**
 | Role | Model | Provider | Via |
 |------|-------|----------|-----|
 | Model A | GPT-3.5 Turbo | OpenAI | OpenRouter |
-| Model B | Gemini 1.5 Flash | Google | Direct API |
+| Model B | Gemini 1.5 Flash | Google | OpenRouter |
 | Model C | Claude Haiku | Anthropic | OpenRouter |
 | Judge | Grok 3 Mini | xAI | OpenRouter |
 
@@ -166,6 +163,6 @@ Grok returns structured JSON which is parsed and displayed in the Judge Panel.
 |---------|-----|
 | `401 Unauthorized` | Check `JWT_SECRET` in `.env` and restart backend |
 | Model returns error | Check `OPENROUTER_API_KEY` has credits; try the OpenRouter dashboard |
-| Gemini fails | Check `GEMINI_API_KEY` is valid and Gemini 1.5 Flash is available in your region |
+| Gemini fails | Check `GEMINI_MODEL` is available on OpenRouter and your `OPENROUTER_API_KEY` has access |
 | CORS error | Make sure backend is on port 5000 and `proxy` in frontend `package.json` points there |
 | `npm start` crashes | Run `npm install` first in both `backend/` and `frontend/` directories |

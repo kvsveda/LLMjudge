@@ -3,10 +3,12 @@
 // ============================================================
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL + "/api",
+const apiBaseUrl = process.env.REACT_APP_API_URL
+  ? `${process.env.REACT_APP_API_URL}/api`
+  : '/api';
 
-  // Uses CRA proxy to localhost:5000
+const api = axios.create({
+  baseURL: apiBaseUrl,
   headers: { 'Content-Type': 'application/json' },
   timeout: 120000, // 2 min for slow LLM calls
 });
