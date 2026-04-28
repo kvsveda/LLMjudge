@@ -2,7 +2,7 @@ const path = require('path');
 const dotenv = require('dotenv');
 
 const envPath = path.join(__dirname, '..', '.env');
-const envResult = dotenv.config({ path: envPath, override: true });
+const envResult = dotenv.config({ path: envPath, override: false });
 const fileEnv = envResult.parsed || {};
 
 function getOpenRouterApiKey() {
