@@ -13,14 +13,28 @@ app.set('trust proxy', 1);
 
 // ── Security middleware ──────────────────────────────────────
 app.use(helmet());
+
+// ✅ FIXED CORS CONFIG
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+  "https://ll-mjudge-63hy.vercel.app"
+];
+
 app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://ll-mjudge-63hy.vercel.app"
-  ],
+  origin: function (origin, callback) {
+    // allow requests with no origin (Postman, mobile apps)
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS: " + origin));
+    }
+  },
   credentials: true,
 }));
+
+// ✅ HANDLE PREFLIGHT REQUESTS (VERY IMPORTANT)
+app.options("*", cors());
 
 // ── Body parsing ─────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
@@ -28,15 +42,15 @@ app.use(express.urlencoded({ extended: true }));
 
 // ── Rate limiting ────────────────────────────────────────────
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
+  windowMs: 15 * 60 * 1000,
   max: 100,
   message: { error: 'Too many requests, please try again later.' },
 });
 app.use('/api/', limiter);
 
-// Analysis endpoint gets stricter limiting (API costs money)
+// Analysis endpoint stricter limit
 const analysisLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000, // 1 hour
+  windowMs: 60 * 60 * 1000,
   max: 20,
   message: { error: 'Analysis limit reached. Please wait before running more analyses.' },
 });
@@ -58,7 +72,13 @@ app.use((req, res) => {
 
 // ── Global error handler ─────────────────────────────────────
 app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
+  console.error('Unhandled error:', err.message);
+
+  // ✅ IMPORTANT: return proper CORS error instead of crashing
+  if (err.message.includes("CORS")) {
+    return res.status(403).json({ error: err.message });
+  }
+
   res.status(500).json({ error: 'Internal server error' });
 });
 
@@ -71,7 +91,7 @@ connectDb()
       console.log(`\n🚀 LLM Judge Backend running on http://localhost:${PORT}`);
       console.log(`📋 Environment: ${process.env.NODE_ENV || 'development'}\n`);
       if (!getOpenRouterApiKey()) {
-        console.warn('⚠️  OpenRouter API key missing. Set OPENROUTER_API_KEY or MY_OPENROUTER_API_KEY in backend/.env');
+        console.warn('⚠️ OpenRouter API key missing.');
       }
     });
   })
@@ -79,5 +99,3 @@ connectDb()
     console.error('❌ Failed to connect to MongoDB:', err.message);
     process.exit(1);
   });
-
-// Force hot-reload to catch .env changes
