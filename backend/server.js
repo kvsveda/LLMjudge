@@ -14,27 +14,31 @@ app.set('trust proxy', 1);
 // ── Security middleware ──────────────────────────────────────
 app.use(helmet());
 
-// ✅ FIXED CORS CONFIG
+// ✅ CORRECT CORS CONFIG (FINAL FIX)
 const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "https://ll-mjudge-63hy.vercel.app"
 ];
 
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
-    // allow requests with no origin (Postman, mobile apps)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error("Not allowed by CORS: " + origin));
+      callback(new Error("CORS blocked: " + origin));
     }
   },
   credentials: true,
-}));
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
 
-// ✅ HANDLE PREFLIGHT REQUESTS (VERY IMPORTANT)
-app.options("*", cors());
+// ✅ Apply CORS globally
+app.use(cors(corsOptions));
+
+// ✅ Handle preflight requests properly (IMPORTANT)
+app.options("*", cors(corsOptions));
 
 // ── Body parsing ─────────────────────────────────────────────
 app.use(express.json({ limit: '10mb' }));
@@ -74,7 +78,6 @@ app.use((req, res) => {
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err.message);
 
-  // ✅ IMPORTANT: return proper CORS error instead of crashing
   if (err.message.includes("CORS")) {
     return res.status(403).json({ error: err.message });
   }
